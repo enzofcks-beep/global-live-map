@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Global Live Map</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yuvraj World - Global Live Map</title>
 
   <link
     rel="stylesheet"
@@ -11,20 +11,17 @@
   />
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
-    body {
+    html, body, #map {
       margin: 0;
+      width: 100%;
+      height: 100%;
       font-family: Arial, sans-serif;
-      background: #05070a;
-      color: white;
     }
 
     #map {
-      width: 100%;
-      height: 100vh;
+      background: #071018;
     }
 
     .panel {
@@ -32,37 +29,46 @@
       top: 15px;
       left: 15px;
       z-index: 1000;
-      background: rgba(10, 15, 22, 0.92);
+      background: rgba(8, 14, 22, .94);
+      color: white;
       padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,.4);
-      max-width: 300px;
+      border-radius: 14px;
+      width: 290px;
+      box-shadow: 0 5px 25px rgba(0,0,0,.45);
     }
 
     .title {
       font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 6px;
+      font-weight: 700;
     }
 
     .status {
-      font-size: 13px;
-      color: #8ee7ff;
+      margin-top: 5px;
       margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .live {
+      color: #37e58c;
     }
 
     button {
       border: 0;
       border-radius: 8px;
-      padding: 9px 12px;
-      margin: 3px;
-      background: #182330;
+      padding: 8px 10px;
+      margin: 2px;
+      background: #1b2a39;
       color: white;
-      cursor: pointer;
     }
 
-    button:hover {
-      background: #26384a;
+    button:active {
+      transform: scale(.97);
+    }
+
+    .counter {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #b9c7d3;
     }
 
     .info {
@@ -70,10 +76,17 @@
       bottom: 15px;
       left: 15px;
       z-index: 1000;
-      background: rgba(10, 15, 22, 0.9);
-      padding: 10px 13px;
+      background: rgba(8, 14, 22, .9);
+      color: white;
+      padding: 9px 12px;
       border-radius: 10px;
       font-size: 12px;
+    }
+
+    .plane {
+      font-size: 20px;
+      line-height: 20px;
+      text-align: center;
     }
   </style>
 </head>
@@ -81,25 +94,31 @@
 <body>
 
   <div class="panel">
-    <div class="title">🌍 Global Live Map</div>
-    <div class="status">● LIVE WORLD DATA</div>
+    <div class="title">🌍 Yuvraj Global Live Map</div>
 
-    <button onclick="zoomWorld()">🌎 World</button>
-    <button onclick="showLondon()">📍 London</button>
-    <button onclick="showNewYork()">📍 New York</button>
+    <div class="status">
+      <span class="live">● LIVE</span> Aircraft tracking
+    </div>
+
+    <button onclick="world()">🌎 World</button>
+    <button onclick="london()">🇬🇧 London</button>
+    <button onclick="newYork()">🇺🇸 New York</button>
+
+    <div class="counter" id="counter">
+      Loading aircraft...
+    </div>
   </div>
 
   <div id="map"></div>
 
   <div class="info">
-    ✈️ Flights • 🚢 Ships • 📷 Public Cameras • 🌦️ Weather
+    ✈️ Live public flight data
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
     const map = L.map("map", {
-      zoomControl: true,
       worldCopyJump: true
     }).setView([20, 0], 2);
 
@@ -111,56 +130,122 @@
       }
     ).addTo(map);
 
-    function zoomWorld() {
+    const flightLayer = L.layerGroup().addTo(map);
+
+    function world() {
       map.setView([20, 0], 2);
     }
 
-    function showLondon() {
-      map.setView([51.5074, -0.1278], 10);
+    function london() {
+      map.setView([51.5074, -0.1278], 8);
     }
 
-    function showNewYork() {
-      map.setView([40.7128, -74.0060], 10);
+    function newYork() {
+      map.setView([40.7128, -74.0060], 8);
     }
 
-    // Demo aircraft markers.
-    // Real live aircraft data will be connected in the next step.
-    const demoFlights = [
-      {
-        name: "DEMO 001",
-        lat: 51.5,
-        lon: -0.1,
-        altitude: "35,000 ft"
-      },
-      {
-        name: "DEMO 002",
-        lat: 40.7,
-        lon: -74.0,
-        altitude: "31,000 ft"
-      },
-      {
-        name: "DEMO 003",
-        lat: 25.2,
-        lon: 55.3,
-        altitude: "37,000 ft"
-      },
-      {
-        name: "DEMO 004",
-        lat: 35.7,
-        lon: 139.7,
-        altitude: "33,000 ft"
+    function createPlaneIcon(rotation) {
+      return L.divIcon({
+        className: "",
+        html: `<div class="plane" style="transform: rotate(${rotation || 0}deg)">✈️</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+    }
+
+    async function loadFlights() {
+      const counter = document.getElementById("counter");
+
+      try {
+        const response = await fetch("/.netlify/functions/flights");
+
+        if (!response.ok) {
+          throw new Error("Flight API unavailable");
+        }
+
+        const data = await response.json();
+
+        flightLayer.clearLayers();
+
+        const states = data.states || [];
+        let count = 0;
+
+        states.forEach(state => {
+          /*
+            OpenSky state vector:
+            0 icao24
+            1 callsign
+            2 origin country
+            5 longitude
+            6 latitude
+            7 barometric altitude
+            9 velocity
+            10 true track
+          */
+
+          const callsign = (state[1] || "UNKNOWN").trim();
+          const country = state[2] || "Unknown";
+          const longitude = state[5];
+          const latitude = state[6];
+          const altitude = state[7];
+          const velocity = state[9];
+          const heading = state[10];
+
+          if (
+            typeof latitude !== "number" ||
+            typeof longitude !== "number"
+          ) {
+            return;
+          }
+
+          count++;
+
+          const altitudeFt =
+            typeof altitude === "number"
+              ? Math.round(altitude * 3.28084).toLocaleString()
+              : "Unknown";
+
+          const speedKnots =
+            typeof velocity === "number"
+              ? Math.round(velocity * 1.94384)
+              : "Unknown";
+
+          const marker = L.marker(
+            [latitude, longitude],
+            {
+              icon: createPlaneIcon(heading)
+            }
+          );
+
+          marker.bindPopup(`
+            <b>✈️ ${callsign}</b><br>
+            Country: ${country}<br>
+            Altitude: ${altitudeFt} ft<br>
+            Speed: ${speedKnots} knots<br>
+            Heading: ${typeof heading === "number"
+              ? Math.round(heading) + "°"
+              : "Unknown"}<br>
+            ICAO: ${state[0] || "Unknown"}
+          `);
+
+          marker.addTo(flightLayer);
+        });
+
+        counter.textContent =
+          "✈️ Aircraft visible: " + count.toLocaleString();
+
+      } catch (error) {
+        console.error(error);
+
+        counter.textContent =
+          "⚠️ Live flight data unavailable";
       }
-    ];
+    }
 
-    demoFlights.forEach(flight => {
-      const marker = L.marker([flight.lat, flight.lon]).addTo(map);
+    loadFlights();
 
-      marker.bindPopup(`
-        <b>✈️ ${flight.name}</b><br>
-        Altitude: ${flight.altitude}<br>
-        Status: LIVE DEMO
-      `);
-    });
+    // Refresh flight positions periodically.
+    setInterval(loadFlights, 30000);
   </script>
 
 </body>
