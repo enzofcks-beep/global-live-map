@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Global Live Map</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #05070a;
+      color: white;
+    }
+
+    #map {
+      width: 100%;
+      height: 100vh;
+    }
+
+    .panel {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      z-index: 1000;
+      background: rgba(10, 15, 22, 0.92);
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.4);
+      max-width: 300px;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #8ee7ff;
+      margin-bottom: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin: 3px;
+      background: #182330;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #26384a;
+    }
+
+    .info {
+      position: fixed;
+      bottom: 15px;
+      left: 15px;
+      z-index: 1000;
+      background: rgba(10, 15, 22, 0.9);
+      padding: 10px 13px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="panel">
+    <div class="title">🌍 Global Live Map</div>
+    <div class="status">● LIVE WORLD DATA</div>
+
+    <button onclick="zoomWorld()">🌎 World</button>
+    <button onclick="showLondon()">📍 London</button>
+    <button onclick="showNewYork()">📍 New York</button>
+  </div>
+
+  <div id="map"></div>
+
+  <div class="info">
+    ✈️ Flights • 🚢 Ships • 📷 Public Cameras • 🌦️ Weather
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    const map = L.map("map", {
+      zoomControl: true,
+      worldCopyJump: true
+    }).setView([20, 0], 2);
+
+    L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }
+    ).addTo(map);
+
+    function zoomWorld() {
+      map.setView([20, 0], 2);
+    }
+
+    function showLondon() {
+      map.setView([51.5074, -0.1278], 10);
+    }
+
+    function showNewYork() {
+      map.setView([40.7128, -74.0060], 10);
+    }
+
+    // Demo aircraft markers.
+    // Real live aircraft data will be connected in the next step.
+    const demoFlights = [
+      {
+        name: "DEMO 001",
+        lat: 51.5,
+        lon: -0.1,
+        altitude: "35,000 ft"
+      },
+      {
+        name: "DEMO 002",
+        lat: 40.7,
+        lon: -74.0,
+        altitude: "31,000 ft"
+      },
+      {
+        name: "DEMO 003",
+        lat: 25.2,
+        lon: 55.3,
+        altitude: "37,000 ft"
+      },
+      {
+        name: "DEMO 004",
+        lat: 35.7,
+        lon: 139.7,
+        altitude: "33,000 ft"
+      }
+    ];
+
+    demoFlights.forEach(flight => {
+      const marker = L.marker([flight.lat, flight.lon]).addTo(map);
+
+      marker.bindPopup(`
+        <b>✈️ ${flight.name}</b><br>
+        Altitude: ${flight.altitude}<br>
+        Status: LIVE DEMO
+      `);
+    });
+  </script>
+
+</body>
+</html>
